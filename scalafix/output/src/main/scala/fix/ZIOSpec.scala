@@ -461,8 +461,8 @@ object ZIOSpec extends ZIOSpecDefault {
         } yield assert(result)(equalTo(5))
       }
     ),
-    suite("repeatUntilM")(
-      test("repeatUntilM repeat until effectful condition is true") {
+    suite("repeatUntilZio")(
+      test("repeatUntilZio repeat until effectful condition is true") {
         for {
           in     <- Ref.make(10)
           out    <- Ref.make(0)
@@ -470,7 +470,7 @@ object ZIOSpec extends ZIOSpecDefault {
           result <- out.get
         } yield assert(result)(equalTo(10))
       },
-      test("repeatUntilM always evaluates effect at least once") {
+      test("repeatUntilZio always evaluates effect at least once") {
         for {
           ref    <- Ref.make(0)
           _      <- ref.update(_ + 1).repeatUntilZIO(_ => ZIO.succeed(true))
@@ -506,8 +506,8 @@ object ZIOSpec extends ZIOSpecDefault {
         } yield assert(result)(equalTo(5))
       }
     ),
-    suite("repeatWhileM")(
-      test("repeatWhileM repeats while condition is true") {
+    suite("repeatWhileZio")(
+      test("repeatWhileZio repeats while condition is true") {
         for {
           in     <- Ref.make(10)
           out    <- Ref.make(0)
@@ -515,7 +515,7 @@ object ZIOSpec extends ZIOSpecDefault {
           result <- out.get
         } yield assert(result)(equalTo(11))
       },
-      test("repeatWhileM always evaluates effect at least once") {
+      test("repeatWhileZio always evaluates effect at least once") {
         for {
           ref    <- Ref.make(0)
           _      <- ref.update(_ + 1).repeatWhileZIO(_ => ZIO.succeed(false))
@@ -1732,8 +1732,8 @@ object ZIOSpec extends ZIOSpecDefault {
         } yield assert(result)(equalTo(5))
       }
     ),
-    suite("retryUntilM")(
-      test("retryUntilM retries until condition is true") {
+    suite("retryUntilZio")(
+      test("retryUntilZio retries until condition is true") {
         for {
           in     <- Ref.make(10)
           out    <- Ref.make(0)
@@ -1741,7 +1741,7 @@ object ZIOSpec extends ZIOSpecDefault {
           result <- out.get
         } yield assert(result)(equalTo(10))
       },
-      test("retryUntilM runs at least once") {
+      test("retryUntilZio runs at least once") {
         for {
           ref    <- Ref.make(0)
           _      <- ref.update(_ + 1).flipWith(_.retryUntilZIO(_ => ZIO.succeed(true)))
@@ -1777,8 +1777,8 @@ object ZIOSpec extends ZIOSpecDefault {
         } yield assert(result)(equalTo(5))
       }
     ),
-    suite("retryWhileM")(
-      test("retryWhileM retries while condition is true") {
+    suite("retryWhileZio")(
+      test("retryWhileZio retries while condition is true") {
         for {
           in     <- Ref.make(10)
           out    <- Ref.make(0)
@@ -1786,7 +1786,7 @@ object ZIOSpec extends ZIOSpecDefault {
           result <- out.get
         } yield assert(result)(equalTo(11))
       },
-      test("retryWhileM runs at least once") {
+      test("retryWhileZio runs at least once") {
         for {
           ref    <- Ref.make(0)
           _      <- ref.update(_ + 1).flipWith(_.retryWhileZIO(_ => ZIO.succeed(false)))
