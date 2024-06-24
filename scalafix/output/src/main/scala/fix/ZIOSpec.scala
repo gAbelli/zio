@@ -1721,6 +1721,146 @@ object ZIOSpec extends ZIOSpecDefault {
         } yield assert(result)(equalTo(1))
       }
     ),
+    suite("retryNUntil")(
+      test("retryNUntil retries until condition is true if n is large") {
+        for {
+          in     <- Ref.make(10)
+          out    <- Ref.make(0)
+          _      <- (in.updateAndGet(_ - 1) <* out.update(_ + 1)).flipWith(_.retryNUntil(Int.MaxValue)(_ == 0))
+          result <- out.get
+        } yield assert(result)(equalTo(10))
+      },
+      test("retryNUntil retries at most n times") {
+        for {
+          in     <- Ref.make(10)
+          out    <- Ref.make(0)
+          _      <- (in.updateAndGet(_ - 1) <* out.update(_ + 1)).flipWith(_.retryNUntil(7)(_ == 0))
+          result <- out.get
+        } yield assert(result)(equalTo(8))
+      },
+      test("retryNUntil runs at least once") {
+        for {
+          ref    <- Ref.make(0)
+          _      <- ref.update(_ + 1).flipWith(_.retryNUntil(0)(_ => true))
+          result <- ref.get
+        } yield assert(result)(equalTo(1))
+      }
+    ),
+    suite("retryNUntilEquals")(
+      test("retryNUntilEquals retries until error equals predicate if n is large") {
+        for {
+          q      <- Queue.unbounded[Int]
+          _      <- q.offerAll(List(1, 2, 3, 4, 5, 6))
+          acc    <- Ref.make(0)
+          _      <- (q.take <* acc.update(_ + 1)).flipWith(_.retryNUntilEquals(Int.MaxValue)(5))
+          result <- acc.get
+        } yield assert(result)(equalTo(5))
+      },
+      test("retryNUntilEquals retries at most n times") {
+        for {
+          q      <- Queue.unbounded[Int]
+          _      <- q.offerAll(List(1, 2, 3, 4, 5, 6))
+          acc    <- Ref.make(0)
+          _      <- (q.take <* acc.update(_ + 1)).flipWith(_.retryNUntilEquals(2)(5))
+          result <- acc.get
+        } yield assert(result)(equalTo(3))
+      }
+    ),
+    suite("retryNUntilZio")(
+      test("retryNUntilZio retries until condition is true if n is large") {
+        for {
+          in     <- Ref.make(10)
+          out    <- Ref.make(0)
+          _      <- (in.updateAndGet(_ - 1) <* out.update(_ + 1)).flipWith(_.retryNUntilZIO(Int.MaxValue)(v => ZIO.succeed(v == 0)))
+          result <- out.get
+        } yield assert(result)(equalTo(10))
+      },
+      test("retryNUntilZio retries at most n times") {
+        for {
+          in     <- Ref.make(10)
+          out    <- Ref.make(0)
+          _      <- (in.updateAndGet(_ - 1) <* out.update(_ + 1)).flipWith(_.retryNUntilZIO(7)(v => ZIO.succeed(v == 0)))
+          result <- out.get
+        } yield assert(result)(equalTo(8))
+      },
+      test("retryNUntilZio runs at least once") {
+        for {
+          ref    <- Ref.make(0)
+          _      <- ref.update(_ + 1).flipWith(_.retryNUntilZIO(0)(_ => ZIO.succeed(true)))
+          result <- ref.get
+        } yield assert(result)(equalTo(1))
+      }
+    ),
+    suite("retryNWhile")(
+      test("retryNWhile retries while condition is true if n is large") {
+        for {
+          in     <- Ref.make(10)
+          out    <- Ref.make(0)
+          _      <- (in.updateAndGet(_ - 1) <* out.update(_ + 1)).flipWith(_.retryNWhile(Int.MaxValue)(_ >= 0))
+          result <- out.get
+        } yield assert(result)(equalTo(11))
+      },
+      test("retryNWhile retries at most n times") {
+        for {
+          in     <- Ref.make(10)
+          out    <- Ref.make(0)
+          _      <- (in.updateAndGet(_ - 1) <* out.update(_ + 1)).flipWith(_.retryNWhile(7)(_ >= 0))
+          result <- out.get
+        } yield assert(result)(equalTo(8))
+      },
+      test("retryNWhile runs at least once") {
+        for {
+          ref    <- Ref.make(0)
+          _      <- ref.update(_ + 1).flipWith(_.retryNWhile(0)(_ => false))
+          result <- ref.get
+        } yield assert(result)(equalTo(1))
+      }
+    ),
+    suite("retryNWhileEquals")(
+      test("retryNWhileEquals retries while error equals predicate if n is large") {
+        for {
+          q      <- Queue.unbounded[Int]
+          _      <- q.offerAll(List(0, 0, 0, 0, 1, 2))
+          acc    <- Ref.make(0)
+          _      <- (q.take <* acc.update(_ + 1)).flipWith(_.retryNWhileEquals(Int.MaxValue)(0))
+          result <- acc.get
+        } yield assert(result)(equalTo(5))
+      },
+      test("retryNWhileEquals retries at most n times") {
+        for {
+          q      <- Queue.unbounded[Int]
+          _      <- q.offerAll(List(0, 0, 0, 0, 1, 2))
+          acc    <- Ref.make(0)
+          _      <- (q.take <* acc.update(_ + 1)).flipWith(_.retryNWhileEquals(2)(0))
+          result <- acc.get
+        } yield assert(result)(equalTo(3))
+      }
+    ),
+    suite("retryNWhileZio")(
+      test("retryNWhileZio retries while condition is true if n is large") {
+        for {
+          in     <- Ref.make(10)
+          out    <- Ref.make(0)
+          _      <- (in.updateAndGet(_ - 1) <* out.update(_ + 1)).flipWith(_.retryNWhileZIO(Int.MaxValue)(v => ZIO.succeed(v >= 0)))
+          result <- out.get
+        } yield assert(result)(equalTo(11))
+      },
+      test("retryNWhileZio retries at most n times") {
+        for {
+          in     <- Ref.make(10)
+          out    <- Ref.make(0)
+          _      <- (in.updateAndGet(_ - 1) <* out.update(_ + 1)).flipWith(_.retryNWhileZIO(7)(v => ZIO.succeed(v >= 0)))
+          result <- out.get
+        } yield assert(result)(equalTo(8))
+      },
+      test("retryNWhileZio runs at least once") {
+        for {
+          ref    <- Ref.make(0)
+          _      <- ref.update(_ + 1).flipWith(_.retryNWhileZIO(0)(_ => ZIO.succeed(false)))
+          result <- ref.get
+        } yield assert(result)(equalTo(1))
+      }
+    )
     suite("retryUntil")(
       test("retryUntil retries until condition is true") {
         for {
@@ -1807,6 +1947,96 @@ object ZIOSpec extends ZIOSpecDefault {
         for {
           ref    <- Ref.make(0)
           _      <- ref.update(_ + 1).flipWith(_.retryWhileZIO(_ => ZIO.succeed(false)))
+          result <- ref.get
+        } yield assert(result)(equalTo(1))
+      }
+    ),
+    suite("retryNUntil")(
+      test("retryNUntil retries until condition is true") {
+        for {
+          in     <- Ref.make(10)
+          out    <- Ref.make(0)
+          _      <- (in.updateAndGet(_ - 1) <* out.update(_ + 1)).flipWith(_.retryNUntil(_ == 0))
+          result <- out.get
+        } yield assert(result)(equalTo(10))
+      },
+      test("retryNUntil runs at least once") {
+        for {
+          ref    <- Ref.make(0)
+          _      <- ref.update(_ + 1).flipWith(_.retryNUntil(_ => true))
+          result <- ref.get
+        } yield assert(result)(equalTo(1))
+      }
+    ),
+    suite("retryNUntilEquals")(
+      test("retryNUntilEquals retries until error equals predicate") {
+        for {
+          q      <- Queue.unbounded[Int]
+          _      <- q.offerAll(List(1, 2, 3, 4, 5, 6))
+          acc    <- Ref.make(0)
+          _      <- (q.take <* acc.update(_ + 1)).flipWith(_.retryNUntilEquals(5))
+          result <- acc.get
+        } yield assert(result)(equalTo(5))
+      }
+    ),
+    suite("retryNUntilZio")(
+      test("retryNUntilZio retries until condition is true") {
+        for {
+          in     <- Ref.make(10)
+          out    <- Ref.make(0)
+          _      <- (in.updateAndGet(_ - 1) <* out.update(_ + 1)).flipWith(_.retryNUntilZIO(v => ZIO.succeed(v == 0)))
+          result <- out.get
+        } yield assert(result)(equalTo(10))
+      },
+      test("retryNUntilZio runs at least once") {
+        for {
+          ref    <- Ref.make(0)
+          _      <- ref.update(_ + 1).flipWith(_.retryNUntilZIO(_ => ZIO.succeed(true)))
+          result <- ref.get
+        } yield assert(result)(equalTo(1))
+      }
+    ),
+    suite("retryNWhile")(
+      test("retryNWhile retries while condition is true") {
+        for {
+          in     <- Ref.make(10)
+          out    <- Ref.make(0)
+          _      <- (in.updateAndGet(_ - 1) <* out.update(_ + 1)).flipWith(_.retryNWhile(_ >= 0))
+          result <- out.get
+        } yield assert(result)(equalTo(11))
+      },
+      test("retryNWhile runs at least once") {
+        for {
+          ref    <- Ref.make(0)
+          _      <- ref.update(_ + 1).flipWith(_.retryNWhile(_ => false))
+          result <- ref.get
+        } yield assert(result)(equalTo(1))
+      }
+    ),
+    suite("retryNWhileEquals")(
+      test("retryNWhileEquals retries while error equals predicate") {
+        for {
+          q      <- Queue.unbounded[Int]
+          _      <- q.offerAll(List(0, 0, 0, 0, 1, 2))
+          acc    <- Ref.make(0)
+          _      <- (q.take <* acc.update(_ + 1)).flipWith(_.retryNWhileEquals(0))
+          result <- acc.get
+        } yield assert(result)(equalTo(5))
+      }
+    ),
+    suite("retryNWhileZio")(
+      test("retryNWhileZio retries while condition is true") {
+        for {
+          in     <- Ref.make(10)
+          out    <- Ref.make(0)
+          _      <- (in.updateAndGet(_ - 1) <* out.update(_ + 1)).flipWith(_.retryNWhileZIO(v => ZIO.succeed(v >= 0)))
+          result <- out.get
+        } yield assert(result)(equalTo(11))
+      },
+      test("retryNWhileZio runs at least once") {
+        for {
+          ref    <- Ref.make(0)
+          _      <- ref.update(_ + 1).flipWith(_.retryNWhileZIO(_ => ZIO.succeed(false)))
           result <- ref.get
         } yield assert(result)(equalTo(1))
       }
