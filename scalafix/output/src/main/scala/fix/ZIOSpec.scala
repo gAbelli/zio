@@ -1704,6 +1704,23 @@ object ZIOSpec extends ZIOSpecDefault {
         assertM(ZIO.collectAll(lst))(equalTo(List(12, 12)))
       }
     ),
+    suite("retryN")(
+      test("retryN retries n times") {
+        for {
+          in     <- Ref.make(10)
+          out    <- Ref.make(0)
+          _      <- (in.updateAndGet(_ - 1) <* out.update(_ + 1)).flipWith(_.retryN(7))
+          result <- out.get
+        } yield assert(result)(equalTo(8))
+      },
+      test("retryN runs at least once") {
+        for {
+          ref    <- Ref.make(0)
+          _      <- ref.update(_ + 1).flipWith(_.retryN(0))
+          result <- ref.get
+        } yield assert(result)(equalTo(1))
+      }
+    ),
     suite("retryUntil")(
       test("retryUntil retries until condition is true") {
         for {
