@@ -1690,6 +1690,65 @@ sealed trait ZIO[-R, +E, +A]
     }
 
   /**
+   * Retries this effect until its error satisfies the specified predicate, up
+   * to the specified number of times.
+   */
+  final def retryNUntil(n: => Int)(f: E => Boolean)(implicit ev: CanFail[E], trace: Trace): ZIO[R, E, A] =
+    retryNUntilZIO(n)(e => ZIO.succeed(f(e)))
+
+  /**
+   * Retries this effect until its error is equal to the specified error, up to
+   * the specified number of times.
+   */
+  final def retryNUntilEquals[E1 >: E](n: => Int)(e: E1)(implicit ev: CanFail[E], trace: Trace): ZIO[R, E, A] =
+    retryNUntil(n)(_ == e)
+
+  /**
+   * Retries this effect until its error satisfies the specified effectful
+   * predicate, up to the specified number of times.
+   */
+  final def retryNUntilZIO[R1 <: R](
+    n: => Int
+  )(f: E => URIO[R1, Boolean])(implicit ev: CanFail[E], trace: Trace): ZIO[R1, E, A] =
+    ZIO.suspendSucceed {
+
+      def loop(n: Int): ZIO[R1, E, A] =
+        self.catchAllCause { cause =>
+          cause.failureOrCause.fold(
+            failure =>
+              if (n <= 0) ZIO.refailCause(cause)
+              else f(failure).flatMap(b => if (b) ZIO.refailCause(cause) else ZIO.yieldNow *> loop(n - 1)),
+            cause => ZIO.refailCause(cause)
+          )
+        }
+
+      loop(n)
+    }
+
+  /**
+   * Retries this effect while its error satisfies the specified predicate, up
+   * to the specified number of times.
+   */
+  final def retryNWhile(n: => Int)(f: E => Boolean)(implicit ev: CanFail[E], trace: Trace): ZIO[R, E, A] =
+    retryNWhileZIO(n)(e => ZIO.succeed(f(e)))
+
+  /**
+   * Retries this effect for as long as its error is equal to the specified
+   * error, up to the specified number of times.
+   */
+  final def retryNWhileEquals[E1 >: E](n: => Int)(e: => E1)(implicit ev: CanFail[E1], trace: Trace): ZIO[R, E1, A] =
+    retryNWhile(n)(_ == e)
+
+  /**
+   * Retries this effect while its error satisfies the specified effectful
+   * predicate, up to the specified number of times.
+   */
+  final def retryNWhileZIO[R1 <: R](n: => Int)(
+    f: E => URIO[R1, Boolean]
+  )(implicit ev: CanFail[E], trace: Trace): ZIO[R1, E, A] =
+    retryNUntilZIO(n)(e => f(e).map(!_))
+
+  /**
    * Retries with the specified schedule, until it fails, and then both the
    * value produced by the schedule together with the last error are passed to
    * the recovery function.
